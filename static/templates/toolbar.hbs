@@ -8,12 +8,12 @@
         </div>
 
         <div class="navbar-collapse collapse" id="{{viewName}}-toolbar-options">
-            <span>DR Insights</span>
+            <span><a href="/">DR Insights</a></span>
             {{#if funnel}}
-            <span class="toolbar-second-name">| <a href="/funnel/{{funnel.slug}}/">{{ funnel.name }}</a></span>
+            <span class="toolbar-second-name">| <a href="/{{funnel.slug}}/">{{ funnel.name }}</a></span>
+            {{/if}}
             {{#if context}}
             <span class="toolbar-second-name">| {{ context }}</span>
-            {{/if}}
             {{/if}}
         </div>
     </div>

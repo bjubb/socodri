@@ -5,7 +5,7 @@ var labelList = require('../../templates/label-list.hbs')
 var request = require('superagent-bluebird-promise')
 var Promise = require("bluebird");
 
-module.exports.path = '/funnel/:funnel/category/:category/'
+module.exports.path = '/:funnel/category/:category/'
 module.exports.run = function(params) {
     'use strict'
     var toolbarEl = document.querySelector('#header-toolbar')
