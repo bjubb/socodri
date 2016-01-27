@@ -17,13 +17,29 @@
         </li>
         <li class="list-group-item">
             <div class="sc-list-item-label clearfix">
-                Conversions
+                {{ funnel.conversion_name }}s
             </div>
             <div class="sc-list-item-value">
                 {{formatNumber funnel.insights.conversions}}
             </div>
         </li>
         <li class="list-group-item">
+            <div class="sc-list-item-label clearfix">
+                Cost Per {{ funnel.conversion_name }}
+            </div>
+            <div class="sc-list-item-value">
+                {{costPer funnel.insights.conversions funnel.insights.spend}}
+            </div>
+        </li>
+        <li class="list-group-item">
+            <div class="sc-list-item-label clearfix">
+                {{ funnel.conversion_name }} Rate
+            </div>
+            <div class="sc-list-item-value">
+                {{ percentOf funnel.insights.conversions funnel.insights.impressions 3 }}%
+            </div>
+        </li>
+        <!--li class="list-group-item">
             <div class="sc-list-item-label clearfix">
                 Revenue
             </div>
@@ -38,6 +54,6 @@
             <div class="sc-list-item-value">
                 {{roas funnel.insights.spend funnel.insights.conversion_revenue }}
             </div>
-        </li>
+        </li-->
     </ul>
 </div>

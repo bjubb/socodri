@@ -65,6 +65,7 @@ class FunnelResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.
         'adaccount': 'adaccount.name',
         'stage_count': 'stage_count',
         'action_count': 'action_count',
+        'conversion_name': 'conversion_name'
     })
 
     @classmethod

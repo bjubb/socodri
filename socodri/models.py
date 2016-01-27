@@ -31,6 +31,10 @@ class Funnel(models.Model):
     def __unicode__(self):
         return self.name
 
+    @property
+    def conversion_name(self):
+        return 'Lead'
+
 
 class Action(models.Model):
     pixel = models.ForeignKey(AdsObject)

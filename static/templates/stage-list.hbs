@@ -7,7 +7,7 @@
               </div>
               <div class="col-md-3">
                   <div class="sc-card-label">
-                      Total {{name}}s
+                      {{ ../funnel.conversion_name }}s
                   </div>
                   <div class="sc-card-value">
                       {{formatNumber  insights.conversions }} <small>({{percentOf insights.conversions ../funnel.insights.conversions }}%) </small>
@@ -15,7 +15,7 @@
               </div>
               <div class="col-md-3">
                   <div class="sc-card-label">
-                      Cost Per {{name}}
+                      Cost Per {{ ../funnel.conversion_name }}
                   </div>
                   <div class="sc-card-value">
                       {{ costPer insights.conversions insights.spend }}
