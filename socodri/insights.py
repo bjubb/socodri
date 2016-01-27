@@ -22,31 +22,34 @@ def aggregate_funnel_data(funnel, data):
 
     val['reach'] = data['reach']
     val['spend'] = data['spend']
+    val['impressions'] = data['impressions']
     val['date_start'] = data['date_start']
     val['date_stop'] = data['date_stop']
 
     conversion_action_prefix = 'offsite_conversion.'
     funnel_attr_window = get_funnel_attr_window(funnel)
     funnel_attr_multipliers = get_funnel_attr_multipliers(funnel)
-    for action in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data['actions']):
+    for action in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('actions', [])):
         pixel_id = long(action[Insights.ActionBreakdown.action_target_id])
         prefix, tag = action[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
-        conversions = sum(
-            map(lambda (window, multiplier): action.get(window, 0) * multiplier,
-                zip(funnel_attr_window, funnel_attr_multipliers)
-               )
-        )
-        val['conversions'] += conversions
+        if funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag).count():
+            conversions = sum(
+                map(lambda (window, multiplier): action.get(window, 0) * multiplier,
+                    zip(funnel_attr_window, funnel_attr_multipliers)
+                   )
+            )
+            val['conversions'] += conversions
 
-    for action_value in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data['action_values']):
+    for action_value in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('action_values', [])):
         pixel_id = long(action_value[Insights.ActionBreakdown.action_target_id])
         prefix, tag = action_value[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
-        conversion_revenue = sum(
-            map(lambda (window, multiplier): action_value.get(window, 0.0) * multiplier,
-                zip(funnel_attr_window, funnel_attr_multipliers)
-               )
-        )
-        val['conversion_revenue'] += conversion_revenue
+        if funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag).count():
+            conversion_revenue = sum(
+                map(lambda (window, multiplier): action_value.get(window, 0.0) * multiplier,
+                    zip(funnel_attr_window, funnel_attr_multipliers)
+                   )
+            )
+            val['conversion_revenue'] += conversion_revenue
     return val
 
 
@@ -54,6 +57,7 @@ def aggregate_stage_data(funnel, data):
     stages = {}
     val = {'conversions': 0, 'conversion_revenue': 0.00}
     val['spend'] = data['spend']
+    val['impressions'] = data['impressions']
     val['date_start'] = data['date_start']
     val['date_stop'] = data['date_stop']
 
@@ -63,7 +67,7 @@ def aggregate_stage_data(funnel, data):
     conversion_action_prefix = 'offsite_conversion.'
     funnel_attr_window = get_funnel_attr_window(funnel)
     funnel_attr_multipliers = get_funnel_attr_multipliers(funnel)
-    for action in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data['actions']):
+    for action in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('actions', [])):
         pixel_id = long(action[Insights.ActionBreakdown.action_target_id])
         prefix, tag = action[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
         for stage in funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag):
@@ -74,7 +78,7 @@ def aggregate_stage_data(funnel, data):
             )
             stages[stage.number]['conversions'] += conversions
 
-    for action_value in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data['action_values']):
+    for action_value in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('action_values', [])):
         pixel_id = long(action_value[Insights.ActionBreakdown.action_target_id])
         prefix, tag = action_value[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
         for stage in funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag):
@@ -113,6 +117,7 @@ def get_adaccount_insights(adaccount, attr_window, campaigns=[], adsets=[], ads=
         'time_increment': 1 if daily else Insights.Increment.all_days,
         'fields': [
             Insights.Field.reach,
+            Insights.Field.impressions,
             Insights.Field.spend,
             Insights.Field.actions,
             Insights.Field.action_values,

@@ -2,8 +2,8 @@ var accounting = require('accounting');
 var moment = require('moment');
 var Handlebars = require('handlebars/runtime').default;
 
-Handlebars.registerHelper('percentOf', function(value, outOf) {
-    return accounting.formatNumber([value / outOf] * 100, 0);
+Handlebars.registerHelper('percentOf', function(value, outOf, precision) {
+    return accounting.formatNumber([value / outOf] * 100, precision);
 })
 
 Handlebars.registerHelper('costPer', function(values, spend) {
