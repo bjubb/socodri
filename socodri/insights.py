@@ -142,10 +142,8 @@ def _get_async(account, params):
     async_job = account.get_insights(params=params, async=True)
     while True:
         job = async_job.remote_read()
-        print 'in prog'
         time.sleep(1)
         if job:
-            print 'done'
             break
     return [data for data in async_job.get_result()]
 
