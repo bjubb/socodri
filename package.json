@@ -5,7 +5,7 @@
         "bluebird": "^2.10.2",
         "browserify": "^12.0.1",
         "browserify-handlebars": "^1.0.0",
-        "chart.js": "github:nnnick/Chart.js#v2.0-dev",
+        "chart.js": "nnnick/Chart.js#v2.0-dev",
         "detect-dom-ready": "^1.0.2",
         "handlebars": "^4.0.5",
         "moment": "^2.10.6",
