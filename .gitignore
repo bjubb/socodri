@@ -6,4 +6,3 @@ socodri.egg-info/
 db.sqlite3
 local_settings.py
 node_modules/
-public/dist
