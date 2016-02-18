@@ -95,7 +95,7 @@ USE_TZ = True
 
 STATIC_URL = '/socodri/'
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "static"),
+    os.path.join(BASE_DIR, "public"),
 )
 WHITELISTED_INITIATIVES = {}
 SOCIALCODE_LOGIN_PATH = "/"

@@ -3,9 +3,8 @@ var Route = require('route-parser')
 require('./handlebars-helpers')
 
 var modules = [
-    require('./views/category-detail'),
-    require('./views/funnel-detail'),
-    require('./views/funnel-list'),
+    require('./views/window-detail'),
+    require('./views/initiative-detail'),
 ]
 var location = window.location.pathname
 

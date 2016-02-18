@@ -1,0 +1,38 @@
+<div class="panel sc-panel">
+    <div class="sc-card-header">
+        <div class="sc-card-details">
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                    Window
+                </div>
+                <div class="sc-card-value-large">
+                  {{ formatDate insights.date_start }}
+                  -
+                  {{ formatDate insights.date_stop }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                     Name
+                </div>
+                <div class="sc-card-value-large">
+                    <a href="window/{{id}}/">{{name}}</a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                    Spend
+                </div>
+                <div class="sc-card-value-large">
+                    {{ formatMoney insights.spend }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                  <img src="/socodri/media/SocialCode-Icon-Facebook.png" width="72px"/>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="clearfix"></div>

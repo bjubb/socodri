@@ -1,0 +1,40 @@
+<div class="panel sc-panel">
+    <div class="sc-card-header">
+        <div class="sc-card-details">
+            <div class="col-md-3">
+                <div class="sc-card-value-large">
+                    {{ conversion_name }} Efficiency
+                </div>
+                <div class="sc-card-label-large">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label">
+                </div>
+                <div class="sc-card-value">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label">
+                </div>
+                <div class="sc-card-value">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-value-large" style="text-align: right;">
+                    {{formatNumber  total_insights.conversions }} {{ conversion_name }}s
+                </div>
+                <div class="sc-card-label-large" style="text-align: right;">
+                    Since {{ formatDate total_insights.since }}
+                </div>
+            </div>
+            <div class="clearfix"></div>
+            <div class="col-md-12" style="padding-top: 20px;">
+                <canvas id="{{slug}}-chart" height="100px"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{{#each windows}}
+ {{> window-card}}
+{{/each}}

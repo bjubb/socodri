@@ -1,33 +1,30 @@
 {
     "dependencies": {
-        "scarab-django": "jesseditson/scarab-django",
-        "scarab": "jesseditson/scarab",
         "accounting": "^0.4.1",
         "babelify": "^7.2.0",
         "bluebird": "^2.10.2",
         "browserify": "^12.0.1",
         "browserify-handlebars": "^1.0.0",
+        "chart.js": "github:nnnick/Chart.js#v2.0-dev",
         "detect-dom-ready": "^1.0.2",
         "handlebars": "^4.0.5",
         "moment": "^2.10.6",
+        "numeral": "^1.5.3",
         "route-parser": "0.0.4",
         "superagent": "^1.6.1",
         "superagent-bluebird-promise": "^2.1.1",
         "watchify": "^3.6.1"
     },
-    "scarab": {
-        "parent": "jesseditson/scarab-django"
-    },
     "scripts": {
         "start": "npm run watch & python manage.py runserver 0.0.0.0:8000",
-        "watch": "watchify --poll -v -t browserify-handlebars -t babelify static/js/main.js -o static/dist/js/bundle.js",
-        "bundle": "browserify -t browserify-handlebars -t babelify static/js/main.js -o static/dist/js/bundle.js",
+        "watch": "watchify --poll -v -t browserify-handlebars -t babelify public/js/main.js -o public/dist/js/bundle.js",
+        "bundle": "browserify -t browserify-handlebars -t babelify public/js/main.js -o public/dist/js/bundle.js",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "install": "mkdir -p static/dist"
+        "install": "mkdir -p public/dist/js"
     },
     "name": "socodri",
     "version": "1.0.0",
-    "description": "Socialcode's DR Insights App",
+    "description": "DR Insights by Socialcode Labs",
     "main": "index.js",
     "author": "Brennan Jubb <brennan@socialcode.com>",
     "license": "ISC"
