@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '+d5q4whgp&tya*(&fc!l!@98e6m$thw@^5_zm*f0ej&-!b$c3s'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -97,17 +97,15 @@ STATIC_URL = '/socodri/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
 )
-WHITELISTED_FUNNELS = {}
+WHITELISTED_INITIATIVES = {}
 SOCIALCODE_LOGIN_PATH = "/"
 SOCIALCODE_LOGOUT_PATH = "/logout"
 SOCIALCODE_BASE_URL = 'https://app.socialcode.com'
 CURRENT_USER_API = '/api/bouncer/v2/user/current/'
-AUDIENCE_LINKAGE_API = '/api/audiences/v1/facebooklinkage/'
 FB_APP_ID = 'none'
 FB_APP_SECRET = 'of your'
 FB_ACCESS_TOKEN = 'business'
 
-USE_MOCKS = True
 # mocks
 MOCK_USER = {
     'id': 99,

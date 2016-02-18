@@ -1,23 +1,32 @@
+import time
 from copy import copy
-from facebookads.objects import AdAccount, Insights
+from facebookads.objects import AdAccount, Insights, AsyncJob
 from socodri import utils
 
 
-def get_funnel_attr_window(funnel):
+def _get_attr_window(view_window, click_window):
     return filter(lambda x: x, [
-        getattr(Insights.ActionAttributionWindow, funnel.view_window, None),
-        getattr(Insights.ActionAttributionWindow, funnel.click_window, None)
+        getattr(Insights.ActionAttributionWindow, view_window, None),
+        getattr(Insights.ActionAttributionWindow, click_window, None)
     ])
 
 
-def get_funnel_attr_multipliers(funnel):
-    return filter(lambda x: x, [
-        funnel.view_multiplier if funnel.view_window else None,
-        funnel.click_multiplier if funnel.click_window else None
-    ])
+def get_attr_window(window):
+    return _get_attr_window(window.view_window, window.click_window)
 
 
-def aggregate_funnel_data(funnel, data):
+def _get_attr_multipliers(view_multiplier=None, click_multiplier=None):
+    return filter(lambda x: x, [view_multiplier, click_multiplier])
+
+
+def get_attr_multipliers(window):
+    return _get_attr_multipliers(
+        window.view_multiplier if window.view_window else None,
+        window.click_multiplier if window.click_window else None
+    )
+
+
+def aggregate_insights_data(settings, actions, data):
     val = {'conversions': 0, 'conversion_revenue': 0.00}
 
     val['reach'] = data['reach']
@@ -26,34 +35,68 @@ def aggregate_funnel_data(funnel, data):
     val['date_start'] = data['date_start']
     val['date_stop'] = data['date_stop']
 
-    conversion_action_prefix = 'offsite_conversion.'
-    funnel_attr_window = get_funnel_attr_window(funnel)
-    funnel_attr_multipliers = get_funnel_attr_multipliers(funnel)
-    for action in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('actions', [])):
-        pixel_id = long(action[Insights.ActionBreakdown.action_target_id])
-        prefix, tag = action[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
-        if funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag).count():
-            conversions = sum(
-                map(lambda (window, multiplier): action.get(window, 0) * multiplier,
-                    zip(funnel_attr_window, funnel_attr_multipliers)
-                   )
-            )
-            val['conversions'] += conversions
+    attr_window = _get_attr_window(settings.view_window, settings.click_window)
+    attr_multipliers = _get_attr_multipliers(settings.view_multiplier, settings.click_multiplier)
 
-    for action_value in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('action_values', [])):
-        pixel_id = long(action_value[Insights.ActionBreakdown.action_target_id])
-        prefix, tag = action_value[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
-        if funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag).count():
+    filtered_actions = set([(a.pixel.id, a.tag) for a in actions])
+    create_action_tuple = lambda a: (long(a[Insights.ActionBreakdown.action_target_id]), unicode(a[Insights.ActionBreakdown.action_type]))
+
+    for action in filter(lambda x: create_action_tuple(x) in filtered_actions, data.get('actions', [])):
+        conversions = sum(
+            map(lambda (window, multiplier): action.get(window, 0) * multiplier,
+                zip(attr_window, attr_multipliers)
+               )
+        )
+        val['conversions'] += conversions
+
+    if settings.revenue_source == 'Facebook':
+        for action_value in filter(lambda x: create_action_tuple(x) in filtered_actions, data.get('action_values', [])):
             conversion_revenue = sum(
                 map(lambda (window, multiplier): action_value.get(window, 0.0) * multiplier,
-                    zip(funnel_attr_window, funnel_attr_multipliers)
+                    zip(attr_window, attr_multipliers)
                    )
             )
             val['conversion_revenue'] += conversion_revenue
     return val
 
 
-def aggregate_stage_data(funnel, data):
+def aggregate_window_data(window, data):
+    val = {'conversions': 0, 'conversion_revenue': 0.00}
+
+    val['reach'] = data['reach']
+    val['spend'] = data['spend']
+    val['impressions'] = data['impressions']
+    val['date_start'] = data['date_start']
+    val['date_stop'] = data['date_stop']
+
+    attr_window = get_attr_window(window)
+    attr_multipliers = get_attr_multipliers(window)
+    for action in data.get('actions', []):
+        pixel_id = long(action[Insights.ActionBreakdown.action_target_id])
+        tag = action[Insights.ActionBreakdown.action_type]
+        if window.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag).count():
+            conversions = sum(
+                map(lambda (w, m): action.get(w, 0) * m,
+                    zip(attr_window, attr_multipliers)
+                   )
+            )
+            val['conversions'] += conversions
+
+    for action_value in data.get('action_values', []):
+        pixel_id = long(action[Insights.ActionBreakdown.action_target_id])
+        tag = action[Insights.ActionBreakdown.action_type]
+        if window.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag).count():
+            conversion_revenue = sum(
+                map(lambda (w, m): action_value.get(w, 0) * m,
+                    zip(attr_window, attr_multipliers)
+                   )
+            )
+            val['conversion_revenue'] += conversion_revenue
+
+    return val
+
+
+def aggregate_stage_data(window, data):
     stages = {}
     val = {'conversions': 0, 'conversion_revenue': 0.00}
     val['spend'] = data['spend']
@@ -61,19 +104,19 @@ def aggregate_stage_data(funnel, data):
     val['date_start'] = data['date_start']
     val['date_stop'] = data['date_stop']
 
-    for stage_num in funnel.stage_set.values_list('number', flat=True):
+    for stage_num in window.stage_set.values_list('number', flat=True):
         stages[stage_num] = copy(val)
 
     conversion_action_prefix = 'offsite_conversion.'
-    funnel_attr_window = get_funnel_attr_window(funnel)
-    funnel_attr_multipliers = get_funnel_attr_multipliers(funnel)
+    attr_window = get_attr_window(window)
+    attr_multipliers = get_attr_multipliers(window)
     for action in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('actions', [])):
         pixel_id = long(action[Insights.ActionBreakdown.action_target_id])
         prefix, tag = action[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
-        for stage in funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag):
+        for stage in window.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag):
             conversions = sum(
                 map(lambda (window, multiplier): action.get(window, 0) * multiplier,
-                    zip(funnel_attr_window, funnel_attr_multipliers)
+                    zip(attr_window, attr_multipliers)
                    )
             )
             stages[stage.number]['conversions'] += conversions
@@ -81,10 +124,10 @@ def aggregate_stage_data(funnel, data):
     for action_value in filter(lambda x: conversion_action_prefix in x[Insights.ActionBreakdown.action_type], data.get('action_values', [])):
         pixel_id = long(action_value[Insights.ActionBreakdown.action_target_id])
         prefix, tag = action_value[Insights.ActionBreakdown.action_type].split(conversion_action_prefix)
-        for stage in funnel.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag):
+        for stage in window.stage_set.filter(actions__pixel__id=pixel_id, actions__tag=tag):
             conversion_revenue = sum(
                 map(lambda (window, multiplier): action_value.get(window, 0.0) * multiplier,
-                    zip(funnel_attr_window, funnel_attr_multipliers)
+                    zip(attr_window, attr_multipliers)
                    )
             )
             stages[stage.number]['conversion_revenue'] += conversion_revenue
@@ -92,7 +135,21 @@ def aggregate_stage_data(funnel, data):
 
 cache = {}
 
-def get_adaccount_insights(adaccount, attr_window, campaigns=[], adsets=[], ads=[], daily=False):
+def _get_sync(account, params):
+    return [data for data in account.get_insights(params=params)]
+
+def _get_async(account, params):
+    async_job = account.get_insights(params=params, async=True)
+    while True:
+        job = async_job.remote_read()
+        print 'in prog'
+        time.sleep(1)
+        if job:
+            print 'done'
+            break
+    return [data for data in async_job.get_result()]
+
+def get_adaccount_insights(adaccount, attr_window, campaigns=[], adsets=[], ads=[], increment=Insights.Increment.all_days):
     object_filters = []
     if campaigns:
         object_filters.append({
@@ -114,7 +171,8 @@ def get_adaccount_insights(adaccount, attr_window, campaigns=[], adsets=[], ads=
         })
 
     params = {
-        'time_increment': 1 if daily else Insights.Increment.all_days,
+        'time_increment': increment,
+        'sort': Insights.Field.date_start,
         'fields': [
             Insights.Field.reach,
             Insights.Field.impressions,
@@ -136,16 +194,16 @@ def get_adaccount_insights(adaccount, attr_window, campaigns=[], adsets=[], ads=
             }
         ] + object_filters
     }
-    cache_key = '%s_%s' % (adaccount.id, utils.hash_params(params))
-    retval = None
-    if cache_key in cache:
-        retval = cache[cache_key]
-    else:
-        account = AdAccount('act_%s' % adaccount.id)
-        cache[cache_key] = [data for data in account.get_insights(params=params)][0]
-        retval = cache[cache_key]
 
-    return retval
+
+
+    cache_key = '%s_%s' % (adaccount.id, utils.hash_params(params))
+    if cache_key not in cache:
+        account = AdAccount('act_%s' % adaccount.id)
+        # cache[cache_key] = _get_sync(account, params) if increment == Insights.Increment.all_days else _get_async(account, params)
+        cache[cache_key] = _get_async(account, params)
+
+    return cache[cache_key][0] if increment == Insights.Increment.all_days else cache[cache_key]
 
 def get_ad_insights(adaccount, attr_window, campaigns, daily=False):
     params = {
@@ -156,6 +214,8 @@ def get_ad_insights(adaccount, attr_window, campaigns, daily=False):
             Insights.Field.ad_name,
             Insights.Field.adset_id,
             Insights.Field.adset_name,
+            Insights.Field.campaign_id,
+            Insights.Field.campaign_name,
             Insights.Field.spend,
             Insights.Field.actions,
             Insights.Field.action_values,
@@ -183,41 +243,67 @@ def get_ad_insights(adaccount, attr_window, campaigns, daily=False):
     return [d for d in account.get_insights(params=params)]
 
 
-def get_funnel_insights(funnel):
-    assert funnel
-    return aggregate_funnel_data(funnel,
+def get_bimonthly_insights(initiative):
+    return [
+        aggregate_insights_data(initiative.settings, initiative.actions.all(), data)
+            for data in get_adaccount_insights(
+                initiative.adaccount,
+                _get_attr_window(initiative.settings.view_window, initiative.settings.click_window),
+                campaigns=tuple(initiative.campaigns.all().values_list('id', flat=True)),
+                increment=15
+            )
+    ]
+
+
+def get_daily_window_insights(window):
+    assert window
+    return [
+        aggregate_window_data(window, data)
+            for data in get_adaccount_insights(
+                window.adaccount,
+                get_attr_window(window),
+                campaigns=tuple(window.campaigns.all().values_list('id', flat=True)),
+                increment=1
+            )
+    ]
+
+
+def get_window_insights(window):
+    assert window
+    return aggregate_window_data(window,
         get_adaccount_insights(
-            funnel.adaccount,
-            get_funnel_attr_window(funnel),
-            campaigns=tuple(funnel.campaigns.all().values_list('id', flat=True))
+            window.adaccount,
+            get_attr_window(window),
+            campaigns=tuple(window.campaigns.all().values_list('id', flat=True))
         )
     )
 
 
-def get_stage_insights(funnel):
-    assert funnel
-    return aggregate_stage_data(funnel,
+def get_stage_insights(window):
+    assert window
+    return aggregate_stage_data(window,
         get_adaccount_insights(
-            funnel.adaccount,
-            get_funnel_attr_window(funnel),
-            campaigns=tuple(funnel.campaigns.all().values_list('id', flat=True))
+            window.adaccount,
+            get_attr_window(window),
+            campaigns=tuple(window.campaigns.all().values_list('id', flat=True))
         )
     )
 
-def get_label_catgegory_insights(funnel, category):
-    assert funnel
+def get_label_catgegory_insights(window, category):
+    assert window
     label_ads_map = {}
-    for text, ad_id in funnel.labels.all().filter(category=category, object_type='ad').values_list('text', 'object_id'):
+    for text, ad_id in window.labels.all().filter(category=category, object_type='ad').values_list('text', 'object_id'):
         if text not in label_ads_map:
             label_ads_map[text] = [ad_id]
         else:
             label_ads_map[text].append(ad_id)
 
     for label_text, ads in label_ads_map.iteritems():
-        yield label_text, aggregate_funnel_data(funnel,
+        print ads
+        yield label_text, aggregate_window_data(window,
             get_adaccount_insights(
-                funnel.adaccount,
-                get_funnel_attr_window(funnel),
+                window.adaccount,
+                get_attr_window(window),
                 ads=tuple(ads)
             )
         )

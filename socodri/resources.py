@@ -52,19 +52,18 @@ class AuthorizationMixin(object):
 
     def get_authorized_queryset(self):
         assert self.model
-        return self.model.objects.all().filter(pk__in=settings.WHITELISTED_FUNNELS.get(self.request.user.get('id'), []))
+        return self.model.objects.all().filter(pk__in=settings.WHITELISTED_INITIATIVES.get(self.request.user.get('id'), []))
 
 
-class FunnelResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.DjangoResource):
-    name_prefix = 'funnel'
-    model = models.Funnel
+class InitiativeResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.DjangoResource):
+    name_prefix = 'initiative'
+    model = models.Initiative
     preparer = preparers.LaxFieldsPreparer(fields={
         'id': 'id',
         'slug': 'slug',
         'name': 'name',
-        'adaccount': 'adaccount.name',
-        'stage_count': 'stage_count',
-        'action_count': 'action_count',
+        'brand_id': 'brand_id',
+        'brand_name': 'brand_name',
         'conversion_name': 'conversion_name'
     })
 
@@ -72,25 +71,63 @@ class FunnelResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.
     def urls(cls, name_prefix=None):
         "Add slug detail view"
         name_prefix = name_prefix or cls.name_prefix
-        urlpatterns = super(FunnelResource, cls).urls(name_prefix=name_prefix)
+        urlpatterns = super(InitiativeResource, cls).urls(name_prefix=name_prefix)
         return urlpatterns + patterns('',
             url(r'^(?P<slug>[\w-]+)/$', cls.as_detail(), name=cls.build_url_name('detail', name_prefix)),
         )
 
     def list(self):
-        return self.get_authorized_queryset().annotate(stage_count=Count('stage'))
+        return self.get_authorized_queryset()
 
     def _get_lookup_filter(self, pk=None, slug=None):
         return pk and {'pk': pk} or {'slug': slug}
 
     def detail(self, pk=None, slug=None):
-        return self.get_authorized_queryset().filter(**self._get_lookup_filter(pk, slug)).annotate(stage_count=Count('stage')).first()
+        return self.get_authorized_queryset().filter(**self._get_lookup_filter(pk, slug)).first()
 
     @skip_prepare
     def insights_detail(self, pk=None, slug=None):
-        funnel = models.Funnel.objects.filter(**self._get_lookup_filter(pk, slug)).first()
+        initiative = models.Initiative.objects.filter(**self._get_lookup_filter(pk, slug)).first()
+        return {'data': insights.get_bimonthly_insights(initiative)}
+
+
+class WindowResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.DjangoResource):
+    name_prefix = 'window'
+    model = models.Window
+    preparer = preparers.LaxFieldsPreparer(fields={
+        'id': 'id',
+        'slug': 'slug',
+        'name': 'name',
+        'adaccount': 'adaccount.name',
+        'conversion_name': 'conversion_name'
+    })
+
+    @classmethod
+    def urls(cls, name_prefix=None):
+        "Add slug detail view"
+        name_prefix = name_prefix or cls.name_prefix
+        urlpatterns = super(WindowResource, cls).urls(name_prefix=name_prefix)
+        return urlpatterns + patterns('',
+            url(r'^(?P<slug>[\w-]+)/$', cls.as_detail(), name=cls.build_url_name('detail', name_prefix)),
+        )
+
+    def list(self):
+        initiative = self.request.GET.get('initiative')
+        all_windows = models.Window.objects.all()
+        windows = all_windows.filter(initiative=initiative) if initiative else all_windows
+        return windows
+
+    def _get_lookup_filter(self, pk=None, slug=None):
+        return pk and {'pk': pk} or {'slug': slug}
+
+    def detail(self, pk=None, slug=None):
+        return self.get_authorized_queryset().filter(**self._get_lookup_filter(pk, slug)).first()
+
+    @skip_prepare
+    def insights_detail(self, pk=None, slug=None):
+        window = models.Window.objects.filter(**self._get_lookup_filter(pk, slug)).first()
         daily = self.request.GET.get('daily', False)
-        return {'data': insights.get_funnel_insights(funnel)}
+        return {'data': insights.get_daily_window_insights(window) if daily else insights.get_window_insights(window)}
 
 
 class ActionResource(dj.DjangoResource):
@@ -116,13 +153,13 @@ class StageResource(InsightsMixin, dj.DjangoResource):
         'id': 'id',
         'name': 'name',
         'number': 'number',
-        'funnel_id': 'funnel_id',
+        'window_id': 'window_id',
     })
 
     def list(self):
-        funnel = self.request.GET.get('funnel')
+        window = self.request.GET.get('window')
         all_stages = models.Stage.objects.all()
-        stages = all_stages.filter(funnel=funnel) if funnel else all_stages
+        stages = all_stages.filter(window=window) if window else all_stages
         return stages
 
     def detail(self, pk):
@@ -130,13 +167,13 @@ class StageResource(InsightsMixin, dj.DjangoResource):
 
     @skip_prepare
     def insights_list(self):
-        funnel = self.request.GET.get('funnel')
-        return {'data': insights.get_stage_insights(models.Funnel.objects.get(id=funnel))}
+        window = self.request.GET.get('window')
+        return {'data': insights.get_stage_insights(models.Window.objects.get(id=window))}
 
 class LabelResource(InsightsMixin, dj.DjangoResource):
     preparer = preparers.LaxFieldsPreparer(fields={
         'id': 'id',
-        'funnel_id': 'funnel_id',
+        'window_id': 'window_id',
         'category': 'category',
         'text': 'text',
         'object_type': 'object_type',
@@ -161,27 +198,27 @@ class LabelResource(InsightsMixin, dj.DjangoResource):
         )
 
     def list(self):
-        funnel = self.request.GET.get('funnel', 0)
-        return models.Label.objects.all().filter(funnel=funnel)
+        window = self.request.GET.get('window', 0)
+        return models.Label.objects.all().filter(window=window)
 
     def detail(self, pk):
         return models.Label.objects.get(pk=pk)
 
     @skip_prepare
     def categories(self):
-        funnel = self.request.GET.get('funnel', 0)
-        categories = set(models.Label.objects.all().filter(funnel=funnel).values_list('category', flat=True))
+        window = self.request.GET.get('window', 0)
+        categories = set(models.Label.objects.all().filter(window=window).values_list('category', flat=True))
         return {
             'data': tuple(sorted(categories))
         }
 
     @skip_prepare
     def insights_list(self):
-        funnel = self.request.GET.get('funnel')
+        window = self.request.GET.get('window')
         category = self.request.GET.get('category')
         data = dict(
             insights.get_label_catgegory_insights(
-                models.Funnel.objects.get(id=funnel),
+                models.Window.objects.get(id=window),
                 category
             )
         )
