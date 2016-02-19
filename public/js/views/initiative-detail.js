@@ -8,7 +8,7 @@ var Promise = require("bluebird")
 var Handlebars = require('handlebars/runtime').default
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'))
 
-module.exports.path = '/:initiative/'
+module.exports.path = '/(:mount/):initiative/'
 module.exports.run = function(params) {
     'use strict'
 
