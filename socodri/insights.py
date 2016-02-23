@@ -1,5 +1,6 @@
 import time
 from copy import copy
+from django.core.cache import cache
 from facebookads.objects import AdAccount, Insights, AsyncJob
 from socodri import utils
 
@@ -133,8 +134,6 @@ def aggregate_stage_data(window, data):
             stages[stage.number]['conversion_revenue'] += conversion_revenue
     return stages
 
-cache = {}
-
 def _get_sync(account, params):
     return [data for data in account.get_insights(params=params)]
 
@@ -193,15 +192,13 @@ def get_adaccount_insights(adaccount, attr_window, campaigns=[], adsets=[], ads=
         ] + object_filters
     }
 
-
-
     cache_key = '%s_%s' % (adaccount.id, utils.hash_params(params))
-    if cache_key not in cache:
+    if not cache.get(cache_key):
         account = AdAccount('act_%s' % adaccount.id)
         # cache[cache_key] = _get_sync(account, params) if increment == Insights.Increment.all_days else _get_async(account, params)
-        cache[cache_key] = _get_async(account, params)
+        cache.set(cache_key, _get_async(account, params), 60*60*24*7)  # one week
 
-    return cache[cache_key][0] if increment == Insights.Increment.all_days else cache[cache_key]
+    return cache.get(cache_key)[0] if increment == Insights.Increment.all_days else cache.get(cache_key)
 
 def get_ad_insights(adaccount, attr_window, campaigns, daily=False):
     params = {
@@ -297,7 +294,6 @@ def get_label_catgegory_insights(window, category):
             label_ads_map[text].append(ad_id)
 
     for label_text, ads in label_ads_map.iteritems():
-        print ads
         yield label_text, aggregate_window_data(window,
             get_adaccount_insights(
                 window.adaccount,
