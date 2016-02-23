@@ -3,6 +3,7 @@ venv/
 .Python
 .DS_Store
 socodri.egg-info/
+dri/
 db.sqlite3
 local_settings.py
 node_modules/
