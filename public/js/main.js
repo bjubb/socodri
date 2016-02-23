@@ -5,6 +5,7 @@ require('./handlebars-helpers')
 var modules = [
     require('./views/window-detail'),
     require('./views/initiative-detail'),
+    require('./views/initiative-list'),
 ]
 var location = window.location.pathname
 

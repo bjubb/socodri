@@ -22285,7 +22285,7 @@ var ready = require('detect-dom-ready');
 var Route = require('route-parser');
 require('./handlebars-helpers');
 
-var modules = [require('./views/window-detail'), require('./views/initiative-detail')];
+var modules = [require('./views/window-detail'), require('./views/initiative-detail'), require('./views/initiative-list')];
 var location = window.location.pathname;
 
 reverse_url = function (mount, url) {
@@ -22303,7 +22303,7 @@ function loadApp() {
 
 ready(loadApp);
 
-},{"./handlebars-helpers":79,"./views/initiative-detail":81,"./views/window-detail":82,"detect-dom-ready":44,"route-parser":69}],81:[function(require,module,exports){
+},{"./handlebars-helpers":79,"./views/initiative-detail":81,"./views/initiative-list":82,"./views/window-detail":83,"detect-dom-ready":44,"route-parser":69}],81:[function(require,module,exports){
 var layout = require('../../views/layouts/initiative.hbs');
 var toolbarContext = require('../../views/partials/toolbar-context.hbs');
 var request = require('superagent-bluebird-promise');
@@ -22314,7 +22314,7 @@ var Promise = require("bluebird");
 var Handlebars = require('handlebars/runtime').default;
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'));
 
-module.exports.path = '/(:mount/):initiative/';
+module.exports.path = '/:mount/:initiative/';
 module.exports.run = function (params) {
   'use strict';
 
@@ -22468,7 +22468,29 @@ module.exports.run = function (params) {
   });
 };
 
-},{"../../views/layouts/initiative.hbs":83,"../../views/partials/toolbar-context.hbs":85,"../../views/partials/window-card.hbs":86,"bluebird":2,"chart.js":3,"handlebars/runtime":64,"moment":65,"numeral":66,"superagent-bluebird-promise":77}],82:[function(require,module,exports){
+},{"../../views/layouts/initiative.hbs":84,"../../views/partials/toolbar-context.hbs":88,"../../views/partials/window-card.hbs":89,"bluebird":2,"chart.js":3,"handlebars/runtime":64,"moment":65,"numeral":66,"superagent-bluebird-promise":77}],82:[function(require,module,exports){
+var layout = require('../../views/layouts/list.hbs');
+var toolbarContext = require('../../views/partials/toolbar-context.hbs');
+var request = require('superagent-bluebird-promise');
+var Handlebars = require('handlebars/runtime').default;
+Handlebars.registerPartial('initiative-card', require('../../views/partials/initiative-card.hbs'));
+
+module.exports.path = '/:mount/';
+module.exports.run = function (params) {
+    'use strict';
+
+    var contentEl = document.querySelector('#content');
+
+    request.get(reverse_url(params.mount, '/api/initiative/')).then(function (response) {
+        var context = document.querySelector('#context');
+        context.innerHTML = toolbarContext({ brand_name: 'SocialCode', name: 'Initiatives' });
+        contentEl.innerHTML = layout({ initiatives: response.body.objects });
+    }).catch(function (err) {
+        console.log(err);
+    });
+};
+
+},{"../../views/layouts/list.hbs":85,"../../views/partials/initiative-card.hbs":87,"../../views/partials/toolbar-context.hbs":88,"handlebars/runtime":64,"superagent-bluebird-promise":77}],83:[function(require,module,exports){
 var layout = require('../../views/layouts/window.hbs');
 var toolbarContext = require('../../views/partials/toolbar-context.hbs');
 var request = require('superagent-bluebird-promise');
@@ -22477,7 +22499,7 @@ var Promise = require("bluebird");
 var Handlebars = require('handlebars/runtime').default;
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'));
 
-module.exports.path = '/(:mount/):initiative/window/:window/';
+module.exports.path = '/:mount/:initiative/window/:window/';
 module.exports.run = function (params) {
   'use strict';
 
@@ -22527,7 +22549,7 @@ module.exports.run = function (params) {
   });
 };
 
-},{"../../views/layouts/window.hbs":84,"../../views/partials/toolbar-context.hbs":85,"../../views/partials/window-card.hbs":86,"bluebird":2,"handlebars/runtime":64,"moment":65,"superagent-bluebird-promise":77}],83:[function(require,module,exports){
+},{"../../views/layouts/window.hbs":86,"../../views/partials/toolbar-context.hbs":88,"../../views/partials/window-card.hbs":89,"bluebird":2,"handlebars/runtime":64,"moment":65,"superagent-bluebird-promise":77}],84:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"1":function(container,depth0,helpers,partials,data) {
     var stack1;
 
@@ -22548,13 +22570,35 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
     + "-chart\" height=\"100px\"></canvas>\n            </div>\n        </div>\n    </div>\n</div>\n"
     + ((stack1 = helpers.each.call(alias1,(depth0 != null ? depth0.windows : depth0),{"name":"each","hash":{},"fn":container.program(1, data, 0),"inverse":container.noop,"data":data})) != null ? stack1 : "");
 },"usePartial":true,"useData":true});
-},{"handlebars/runtime":64}],84:[function(require,module,exports){
+},{"handlebars/runtime":64}],85:[function(require,module,exports){
+var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"1":function(container,depth0,helpers,partials,data) {
+    var stack1;
+
+  return ((stack1 = container.invokePartial(partials["initiative-card"],depth0,{"name":"initiative-card","data":data,"indent":" ","helpers":helpers,"partials":partials,"decorators":container.decorators})) != null ? stack1 : "");
+},"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+    var stack1;
+
+  return ((stack1 = helpers.each.call(depth0 != null ? depth0 : {},(depth0 != null ? depth0.initiatives : depth0),{"name":"each","hash":{},"fn":container.program(1, data, 0),"inverse":container.noop,"data":data})) != null ? stack1 : "");
+},"usePartial":true,"useData":true});
+},{"handlebars/runtime":64}],86:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
     var stack1;
 
   return ((stack1 = container.invokePartial(partials["window-card"],depth0,{"name":"window-card","data":data,"helpers":helpers,"partials":partials,"decorators":container.decorators})) != null ? stack1 : "");
 },"usePartial":true,"useData":true});
-},{"handlebars/runtime":64}],85:[function(require,module,exports){
+},{"handlebars/runtime":64}],87:[function(require,module,exports){
+var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+    var helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3="function", alias4=container.escapeExpression;
+
+  return "<div class=\"panel sc-panel\">\n    <div class=\"sc-card-header\">\n        <div class=\"sc-card-details\">\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Brand\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
+    + alias4(((helper = (helper = helpers.brand_name || (depth0 != null ? depth0.brand_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"brand_name","hash":{},"data":data}) : helper)))
+    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Initiative\n                </div>\n                <div class=\"sc-card-value-large\">\n                    <a href=\""
+    + alias4(((helper = (helper = helpers.slug || (depth0 != null ? depth0.slug : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"slug","hash":{},"data":data}) : helper)))
+    + "/\">"
+    + alias4(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"name","hash":{},"data":data}) : helper)))
+    + "</a>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n";
+},"useData":true});
+},{"handlebars/runtime":64}],88:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
     var helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3="function", alias4=container.escapeExpression;
 
@@ -22564,7 +22608,7 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
     + alias4(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"name","hash":{},"data":data}) : helper)))
     + "</span>\n</div>\n";
 },"useData":true});
-},{"handlebars/runtime":64}],86:[function(require,module,exports){
+},{"handlebars/runtime":64}],89:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
     var stack1, helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3=container.escapeExpression, alias4="function";
 
@@ -22578,6 +22622,6 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
     + alias3(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : alias2),(typeof helper === alias4 ? helper.call(alias1,{"name":"name","hash":{},"data":data}) : helper)))
     + "</a>\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Spend\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
     + alias3((helpers.formatMoney || (depth0 && depth0.formatMoney) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.spend : stack1),{"name":"formatMoney","hash":{},"data":data}))
-    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                  <img src=\"/socodri/media/SocialCode-Icon-Facebook.png\" width=\"72px\"/>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n<div class=\"clearfix\"></div>\n";
+    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                  <img src=\"/static/socodri/media/SocialCode-Icon-Facebook.png\" width=\"72px\"/>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n<div class=\"clearfix\"></div>\n";
 },"useData":true});
 },{"handlebars/runtime":64}]},{},[80]);

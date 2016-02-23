@@ -7,7 +7,7 @@ var Handlebars = require('handlebars/runtime').default
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'))
 
 
-module.exports.path = '/(:mount/):initiative/window/:window/'
+module.exports.path = '/:mount/:initiative/window/:window/'
 module.exports.run = function(params) {
     'use strict'
     var contentEl = document.querySelector('#content')
