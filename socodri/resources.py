@@ -52,7 +52,10 @@ class AuthorizationMixin(object):
 
     def get_authorized_queryset(self):
         assert self.model
-        return self.model.objects.all().filter(pk__in=settings.WHITELISTED_INITIATIVES.get(self.request.user.get('id'), []))
+        using_whiltelist = {
+            'pk__in': settings.WHITELISTED_INITIATIVES.get(self.request.user.get('id'), [])
+        }
+        return self.model.objects.all()
 
 
 class InitiativeResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.DjangoResource):
