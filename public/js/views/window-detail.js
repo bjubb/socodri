@@ -16,15 +16,15 @@ module.exports.run = function(params) {
     var _window
     var categories
 
-    request.get('/api/initiative/' + params.initiative + '/')
+    request.get(reverse_url(params.mount, '/api/initiative/' + params.initiative + '/'))
         .then(function(response){
             initiative = response.body
             var context = document.querySelector('#context')
             context.innerHTML = toolbarContext(initiative)
             return Promise.all([
-              request.get('/api/window/' + params.window + "/"),
-              request.get('/api/window/' + params.window + "/insights/"),
-              request.get('/api/label/categories/').query({window: params.window})
+              request.get(reverse_url(params.mount, '/api/window/' + params.window + "/")),
+              request.get(reverse_url(params.mount, '/api/window/' + params.window + "/insights/")),
+              request.get(reverse_url(params.mount, '/api/label/categories/')).query({window: params.window})
             ])
           })
           .spread(function(window_response, insights_response, categories_response){
@@ -38,7 +38,7 @@ module.exports.run = function(params) {
             var i
             var promises = []
             for(i = 0; i < categories.length; i++){
-              promises.push(request.get('/api/label/insights/').query({window: _window.id, category: categories[i]}))
+              promises.push(request.get(reverse_url(params.mount, '/api/label/insights/')).query({window: _window.id, category: categories[i]}))
             }
             return Promise.all(promises)
           })

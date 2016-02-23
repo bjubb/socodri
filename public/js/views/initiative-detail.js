@@ -23,15 +23,15 @@ module.exports.run = function(params) {
     var initiative
     var chartData
 
-    request.get('/api/initiative/' + params.initiative + '/')
+    request.get(reverse_url(params.mount, '/api/initiative/' + params.initiative + '/'))
         .then(function(response){
             initiative = response.body
             initiative.windows = []
             var context = document.querySelector('#context')
             context.innerHTML = toolbarContext(initiative)
             return Promise.all([
-              request.get('/api/initiative/' + initiative.id + "/insights/"),
-              request.get('/api/window/').query({initiative: initiative.id}),
+              request.get(reverse_url(params.mount, '/api/initiative/' + initiative.id + "/insights/")),
+              request.get(reverse_url(params.mount, '/api/window/')).query({initiative: initiative.id}),
             ])
           })
           .spread(function(insights_response, window_response){
@@ -90,7 +90,7 @@ module.exports.run = function(params) {
 
               var promises = []
               for(i = 0; i < initiative.windows.length; i++){
-                promises.push(request.get('/api/window/' + initiative.windows[i].id + '/insights/'))
+                promises.push(request.get(reverse_url(params.mount, '/api/window/' + initiative.windows[i].id + '/insights/')))
               }
 
               return Promise.all(promises)

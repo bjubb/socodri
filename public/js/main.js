@@ -8,6 +8,10 @@ var modules = [
 ]
 var location = window.location.pathname
 
+reverse_url = function(mount, url){
+    return mount ? '/' + mount + url : url
+}
+
 function loadApp(){
     for (var i in modules) {
         var m = modules[i]
