@@ -22622,6 +22622,6 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
     + alias3(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : alias2),(typeof helper === alias4 ? helper.call(alias1,{"name":"name","hash":{},"data":data}) : helper)))
     + "</a>\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Spend\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
     + alias3((helpers.formatMoney || (depth0 && depth0.formatMoney) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.spend : stack1),{"name":"formatMoney","hash":{},"data":data}))
-    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                  <img src=\"/static/socodri/media/SocialCode-Icon-Facebook.png\" width=\"72px\"/>\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n<div class=\"clearfix\"></div>\n";
+    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n<div class=\"clearfix\"></div>\n";
 },"useData":true});
 },{"handlebars/runtime":64}]},{},[80]);
