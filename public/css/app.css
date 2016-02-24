@@ -28,6 +28,26 @@ body #content{
     color: #353535;
 }
 
+.sc-card-value-small{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 100%;
+    color: #353535;
+}
+
+.sc-card-notes-header {
+    position: relative;
+    border-top-right-radius: 3px;
+    border-top-left-radius: 3px;
+    background-color:  #e5ebec;
+}
+
+.sc-card-notes-details {
+    padding: 18px 6px;
+    min-height: 20px;
+}
+
 .pixel-panel{
     margin-bottom: 2px;
 }

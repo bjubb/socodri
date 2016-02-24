@@ -27,11 +27,14 @@
                     {{ formatMoney insights.spend }}
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="sc-card-label-large">
-                </div>
-            </div>
         </div>
     </div>
+    {{#if notes}}
+    <div class="sc-card-notes-header">
+        <div class="sc-card-notes-details">
+            {{notes}}
+        </div>
+    </div>
+    {{/if}}
 </div>
 <div class="clearfix"></div>

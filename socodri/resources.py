@@ -102,7 +102,8 @@ class WindowResource(GetCurrentUserMixin, AuthorizationMixin, InsightsMixin, dj.
         'slug': 'slug',
         'name': 'name',
         'adaccount': 'adaccount.name',
-        'conversion_name': 'conversion_name'
+        'conversion_name': 'initiative.conversion_name',
+        'notes': 'notes'
     })
 
     @classmethod

@@ -65,7 +65,6 @@ function loadWindow(_window){
     request.get(reverse_url(params.mount, '/api/window/' + _window.id + '/insights/'))
       .then(function(response){
           _window.insights = response.body.data
-          _window.notes = "Running exclusively LPP ads going forward, and not incorporating video into our DR strategy."
           draw(initiative)
       })
 }

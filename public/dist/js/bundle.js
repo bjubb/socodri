@@ -22313,6 +22313,7 @@ var Chart = require('chart.js');
 var Promise = require("bluebird");
 var Handlebars = require('handlebars/runtime').default;
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'));
+var initiative;
 
 module.exports.path = '/:mount/:initiative/';
 module.exports.run = function (params) {
@@ -22324,16 +22325,15 @@ module.exports.run = function (params) {
     return '$' + Number(valuePayload.value).toFixed(0);
   };
 
-  var contentEl = document.querySelector('#content');
-
-  var initiative;
-  var chartData;
-
   request.get(reverse_url(params.mount, '/api/initiative/' + params.initiative + '/')).then(function (response) {
     initiative = response.body;
     initiative.windows = [];
+
     var context = document.querySelector('#context');
     context.innerHTML = toolbarContext(initiative);
+
+    draw(initiative);
+
     return Promise.all([request.get(reverse_url(params.mount, '/api/initiative/' + initiative.id + "/insights/")), request.get(reverse_url(params.mount, '/api/window/')).query({ initiative: initiative.id })]);
   }).spread(function (insights_response, window_response) {
     initiative.insights = insights_response.body.data;
@@ -22345,130 +22345,137 @@ module.exports.run = function (params) {
       until: initiative.insights[initiative.insights.length - 1].date_stop
     };
 
-    chartData = {
-      labels: [],
-      datasets: [{
-        label: "Cost",
-        type: 'line',
-        data: [],
-        fill: false,
-        backgroundColor: '#f5872e',
-        borderColor: '#f5872e',
-        pointBackgroundColor: '#f5872e',
-        yAxisID: 'y-axis-2'
-      }, {
-        type: 'bar',
-        label: "Spend",
-        data: [],
-        fill: false,
-        backgroundColor: '#1a707f',
-        borderColor: '#1a707f',
-        yAxisID: 'y-axis-1'
-      }]
-    };
-
     var i;
     for (i = 0; i < initiative.insights.length; i++) {
       initiative.total_insights.impressions += Number(initiative.insights[i].impressions);
       initiative.total_insights.conversions += initiative.insights[i].conversions;
       initiative.total_insights.spend += initiative.insights[i].spend;
-
-      var label = moment(initiative.insights[i].date_stop).format("MMM 'YY");
-      chartData.labels.push(i % 2 ? '' : label);
-
-      chartData.datasets[1].data.push(Number(initiative.insights[i].spend).toFixed(0));
-      var costPer = initiative.total_insights.conversions == 0 ? 0 : initiative.total_insights.spend / initiative.total_insights.conversions;
-      costPer = initiative.insights[i].conversions == 0 ? 0 : initiative.insights[i].spend / initiative.insights[i].conversions;
-      chartData.datasets[0].data.push(Number(costPer).toFixed(0));
     }
-
-    contentEl.innerHTML = layout(initiative);
-
     initiative.windows = window_response.body.objects;
+    draw(initiative);
 
-    var promises = [];
     for (i = 0; i < initiative.windows.length; i++) {
-      promises.push(request.get(reverse_url(params.mount, '/api/window/' + initiative.windows[i].id + '/insights/')));
+      loadWindow(initiative.windows[i]);
     }
-
-    return Promise.all(promises);
-  }).then(function (responses) {
-    var i;
-    for (i = 0; i < initiative.windows.length; i++) {
-      initiative.windows[i].insights = responses[i].body.data;
-    }
-    initiative.windows.sort(function (x, y) {
-      var stop = moment(x.insights.date_stop);
-      var diff = stop.diff(y.insights.date_stop);
-      if (diff == 0) {
-        var start = moment(x.insights.date_start);
-        diff = start.diff(y.insights.date_strt);
-      }
-      return diff;
-    });
-    contentEl.innerHTML = layout(initiative);
-
-    var ctx = document.getElementById(initiative.slug + '-chart').getContext('2d');
-
-    new Chart(ctx, {
-      type: 'bar',
-      data: chartData,
-      options: {
-        responsive: true,
-        scales: {
-          xAxes: [{
-            display: true,
-            barPercentage: 1.0,
-            categoryPercentage: 1.0,
-            gridLines: {
-              display: false
-            },
-            labels: {
-              show: true
-            }
-          }],
-          yAxes: [{
-            type: "linear",
-            display: true,
-            position: "left",
-            id: "y-axis-1",
-            gridLines: {
-              display: false
-            },
-            ticks: {
-              callback: function (tickValue, index, ticks) {
-                return numeral(tickValue).format('($0a)');
-              }
-            },
-            labels: {
-              show: true
-            }
-          }, {
-            type: "linear",
-            display: true,
-            position: "right",
-            id: "y-axis-2",
-            gridLines: {
-              display: false
-            },
-            ticks: {
-              callback: function (tickValue, index, ticks) {
-                return numeral(tickValue).format('($0a)');
-              }
-            },
-            labels: {
-              show: false
-            }
-          }]
-        }
-      }
-    });
   }).catch(function (err) {
     console.log(err);
   });
+
+  function loadWindow(_window) {
+    request.get(reverse_url(params.mount, '/api/window/' + _window.id + '/insights/')).then(function (response) {
+      _window.insights = response.body.data;
+      draw(initiative);
+    });
+  }
+
+  function draw(initiative) {
+    initiative.windows.sort(function (x, y) {
+      var diff = 0;
+      if (x.insights && y.insights) {
+        var stop = moment(x.insights.date_stop);
+        diff = stop.diff(y.insights.date_stop);
+        if (diff == 0) {
+          var start = moment(x.insights.date_start);
+          diff = start.diff(y.insights.date_start);
+        }
+        return diff;
+      }
+    });
+    var contentEl = document.querySelector('#content');
+    contentEl.innerHTML = layout(initiative);
+    if (initiative.insights) {
+      var chartData = {
+        labels: [],
+        datasets: [{
+          label: "Cost",
+          type: 'line',
+          data: [],
+          fill: false,
+          backgroundColor: '#f5872e',
+          borderColor: '#f5872e',
+          pointBackgroundColor: '#f5872e',
+          yAxisID: 'y-axis-2'
+        }, {
+          type: 'bar',
+          label: "Spend",
+          data: [],
+          fill: false,
+          backgroundColor: '#1a707f',
+          borderColor: '#1a707f',
+          yAxisID: 'y-axis-1'
+        }]
+      };
+
+      var i;
+      for (i = 0; i < initiative.insights.length; i++) {
+        var label = moment(initiative.insights[i].date_stop).format("MMM 'YY");
+        chartData.labels.push(i % 2 ? '' : label);
+
+        chartData.datasets[1].data.push(Number(initiative.insights[i].spend).toFixed(0));
+        var costPer = initiative.insights[i].conversions == 0 ? 0 : initiative.insights[i].spend / initiative.insights[i].conversions;
+        chartData.datasets[0].data.push(Number(costPer).toFixed(0));
+      }
+
+      var ctx = document.getElementById(initiative.slug + '-chart').getContext('2d');
+
+      new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+          responsive: true,
+          scales: {
+            xAxes: [{
+              display: true,
+              barPercentage: 1.0,
+              categoryPercentage: 1.0,
+              gridLines: {
+                display: false
+              },
+              labels: {
+                show: true
+              }
+            }],
+            yAxes: [{
+              type: "linear",
+              display: true,
+              position: "left",
+              id: "y-axis-1",
+              gridLines: {
+                display: false
+              },
+              ticks: {
+                callback: function (tickValue, index, ticks) {
+                  return numeral(tickValue).format('($0a)');
+                }
+              },
+              labels: {
+                show: true
+              }
+            }, {
+              type: "linear",
+              display: true,
+              position: "right",
+              id: "y-axis-2",
+              gridLines: {
+                display: false
+              },
+              ticks: {
+                callback: function (tickValue, index, ticks) {
+                  return numeral(tickValue).format('($0a)');
+                }
+              },
+              labels: {
+                show: false
+              }
+            }]
+          }
+        }
+      });
+    }
+  }
 };
 
-},{"../../views/layouts/initiative.hbs":84,"../../views/partials/toolbar-context.hbs":88,"../../views/partials/window-card.hbs":89,"bluebird":2,"chart.js":3,"handlebars/runtime":64,"moment":65,"numeral":66,"superagent-bluebird-promise":77}],82:[function(require,module,exports){
+},{"../../views/layouts/initiative.hbs":84,"../../views/partials/toolbar-context.hbs":89,"../../views/partials/window-card.hbs":90,"bluebird":2,"chart.js":3,"handlebars/runtime":64,"moment":65,"numeral":66,"superagent-bluebird-promise":77}],82:[function(require,module,exports){
 var layout = require('../../views/layouts/list.hbs');
 var toolbarContext = require('../../views/partials/toolbar-context.hbs');
 var request = require('superagent-bluebird-promise');
@@ -22490,7 +22497,7 @@ module.exports.run = function (params) {
     });
 };
 
-},{"../../views/layouts/list.hbs":85,"../../views/partials/initiative-card.hbs":87,"../../views/partials/toolbar-context.hbs":88,"handlebars/runtime":64,"superagent-bluebird-promise":77}],83:[function(require,module,exports){
+},{"../../views/layouts/list.hbs":85,"../../views/partials/initiative-card.hbs":87,"../../views/partials/toolbar-context.hbs":89,"handlebars/runtime":64,"superagent-bluebird-promise":77}],83:[function(require,module,exports){
 var layout = require('../../views/layouts/window.hbs');
 var toolbarContext = require('../../views/partials/toolbar-context.hbs');
 var request = require('superagent-bluebird-promise');
@@ -22498,6 +22505,7 @@ var moment = require("moment");
 var Promise = require("bluebird");
 var Handlebars = require('handlebars/runtime').default;
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'));
+Handlebars.registerPartial('label-card', require('../../views/partials/label-card.hbs'));
 
 module.exports.path = '/:mount/:initiative/window/:window/';
 module.exports.run = function (params) {
@@ -22533,6 +22541,7 @@ module.exports.run = function (params) {
     for (var k in response.body.data) {
       label_insights.push({
         text: k,
+        conversion_name: _window.conversion_name,
         insights: response.body.data[k]
       });
     }
@@ -22540,16 +22549,14 @@ module.exports.run = function (params) {
       return x.insights.spend / x.insights.conversions <= y.insights.spend / y.insights.conversions ? -1 : 1;
     });
   }).then(function (label_insights) {
-    var i = 0;
-    for (i; i < categories.length; i++) {
-      //contentEl.innerHTML += labelList({category: categories[i], labels: label_insights[i], funnel: funnel})
-    }
+    _window.labels = label_insights[0];
+    contentEl.innerHTML = layout(_window);
   }).catch(function (err) {
     console.log(err);
   });
 };
 
-},{"../../views/layouts/window.hbs":86,"../../views/partials/toolbar-context.hbs":88,"../../views/partials/window-card.hbs":89,"bluebird":2,"handlebars/runtime":64,"moment":65,"superagent-bluebird-promise":77}],84:[function(require,module,exports){
+},{"../../views/layouts/window.hbs":86,"../../views/partials/label-card.hbs":88,"../../views/partials/toolbar-context.hbs":89,"../../views/partials/window-card.hbs":90,"bluebird":2,"handlebars/runtime":64,"moment":65,"superagent-bluebird-promise":77}],84:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"1":function(container,depth0,helpers,partials,data) {
     var stack1;
 
@@ -22581,10 +22588,15 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
   return ((stack1 = helpers.each.call(depth0 != null ? depth0 : {},(depth0 != null ? depth0.initiatives : depth0),{"name":"each","hash":{},"fn":container.program(1, data, 0),"inverse":container.noop,"data":data})) != null ? stack1 : "");
 },"usePartial":true,"useData":true});
 },{"handlebars/runtime":64}],86:[function(require,module,exports){
-var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"1":function(container,depth0,helpers,partials,data) {
     var stack1;
 
-  return ((stack1 = container.invokePartial(partials["window-card"],depth0,{"name":"window-card","data":data,"helpers":helpers,"partials":partials,"decorators":container.decorators})) != null ? stack1 : "");
+  return ((stack1 = container.invokePartial(partials["label-card"],depth0,{"name":"label-card","data":data,"indent":" ","helpers":helpers,"partials":partials,"decorators":container.decorators})) != null ? stack1 : "");
+},"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+    var stack1;
+
+  return ((stack1 = container.invokePartial(partials["window-card"],depth0,{"name":"window-card","data":data,"helpers":helpers,"partials":partials,"decorators":container.decorators})) != null ? stack1 : "")
+    + ((stack1 = helpers.each.call(depth0 != null ? depth0 : {},(depth0 != null ? depth0.labels : depth0),{"name":"each","hash":{},"fn":container.program(1, data, 0),"inverse":container.noop,"data":data})) != null ? stack1 : "");
 },"usePartial":true,"useData":true});
 },{"handlebars/runtime":64}],87:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
@@ -22600,6 +22612,24 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
 },"useData":true});
 },{"handlebars/runtime":64}],88:[function(require,module,exports){
 var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+    var stack1, helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3="function", alias4=container.escapeExpression;
+
+  return "<div class=\"panel sc-panel\">\n    <div class=\"sc-card-header\">\n        <div class=\"sc-card-details\">\n            <div class=\"col-md-12\">\n                <h2 class=\"card-heading\">"
+    + alias4(((helper = (helper = helpers.text || (depth0 != null ? depth0.text : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"text","hash":{},"data":data}) : helper)))
+    + "</h2>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    "
+    + alias4(((helper = (helper = helpers.conversion_name || (depth0 != null ? depth0.conversion_name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"conversion_name","hash":{},"data":data}) : helper)))
+    + "s\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
+    + alias4((helpers.formatNumber || (depth0 && depth0.formatNumber) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.conversions : stack1),{"name":"formatNumber","hash":{},"data":data}))
+    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Cost\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
+    + alias4((helpers.costPer || (depth0 && depth0.costPer) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.conversions : stack1),((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.spend : stack1),{"name":"costPer","hash":{},"data":data}))
+    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Reach\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
+    + alias4((helpers.formatNumber || (depth0 && depth0.formatNumber) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.reach : stack1),{"name":"formatNumber","hash":{},"data":data}))
+    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Rate\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
+    + alias4((helpers.percentOf || (depth0 && depth0.percentOf) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.conversions : stack1),((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.impressions : stack1),3,{"name":"percentOf","hash":{},"data":data}))
+    + "%\n                </div>\n            </div>\n            <div class=\"clearfix\"></div>\n        </div>\n    </div>\n</div>\n";
+},"useData":true});
+},{"handlebars/runtime":64}],89:[function(require,module,exports){
+var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
     var helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3="function", alias4=container.escapeExpression;
 
   return "<div>\n  <span id=\"brand-name\">"
@@ -22608,8 +22638,14 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
     + alias4(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : alias2),(typeof helper === alias3 ? helper.call(alias1,{"name":"name","hash":{},"data":data}) : helper)))
     + "</span>\n</div>\n";
 },"useData":true});
-},{"handlebars/runtime":64}],89:[function(require,module,exports){
-var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
+},{"handlebars/runtime":64}],90:[function(require,module,exports){
+var templater = require("handlebars/runtime")["default"].template;module.exports = templater({"1":function(container,depth0,helpers,partials,data) {
+    var helper;
+
+  return "    <div class=\"sc-card-notes-header\">\n        <div class=\"sc-card-notes-details\">\n            "
+    + container.escapeExpression(((helper = (helper = helpers.notes || (depth0 != null ? depth0.notes : depth0)) != null ? helper : helpers.helperMissing),(typeof helper === "function" ? helper.call(depth0 != null ? depth0 : {},{"name":"notes","hash":{},"data":data}) : helper)))
+    + "\n        </div>\n    </div>\n";
+},"compiler":[7,">= 4.0.0"],"main":function(container,depth0,helpers,partials,data) {
     var stack1, helper, alias1=depth0 != null ? depth0 : {}, alias2=helpers.helperMissing, alias3=container.escapeExpression, alias4="function";
 
   return "<div class=\"panel sc-panel\">\n    <div class=\"sc-card-header\">\n        <div class=\"sc-card-details\">\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Window\n                </div>\n                <div class=\"sc-card-value-large\">\n                  "
@@ -22622,6 +22658,8 @@ var templater = require("handlebars/runtime")["default"].template;module.exports
     + alias3(((helper = (helper = helpers.name || (depth0 != null ? depth0.name : depth0)) != null ? helper : alias2),(typeof helper === alias4 ? helper.call(alias1,{"name":"name","hash":{},"data":data}) : helper)))
     + "</a>\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                    Spend\n                </div>\n                <div class=\"sc-card-value-large\">\n                    "
     + alias3((helpers.formatMoney || (depth0 && depth0.formatMoney) || alias2).call(alias1,((stack1 = (depth0 != null ? depth0.insights : depth0)) != null ? stack1.spend : stack1),{"name":"formatMoney","hash":{},"data":data}))
-    + "\n                </div>\n            </div>\n            <div class=\"col-md-3\">\n                <div class=\"sc-card-label-large\">\n                </div>\n            </div>\n        </div>\n    </div>\n</div>\n<div class=\"clearfix\"></div>\n";
+    + "\n                </div>\n            </div>\n        </div>\n    </div>\n"
+    + ((stack1 = helpers["if"].call(alias1,(depth0 != null ? depth0.notes : depth0),{"name":"if","hash":{},"fn":container.program(1, data, 0),"inverse":container.noop,"data":data})) != null ? stack1 : "")
+    + "</div>\n<div class=\"clearfix\"></div>\n";
 },"useData":true});
 },{"handlebars/runtime":64}]},{},[80]);

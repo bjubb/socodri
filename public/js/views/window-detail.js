@@ -5,6 +5,7 @@ var moment = require("moment")
 var Promise = require("bluebird")
 var Handlebars = require('handlebars/runtime').default
 Handlebars.registerPartial('window-card', require('../../views/partials/window-card.hbs'))
+Handlebars.registerPartial('label-card', require('../../views/partials/label-card.hbs'))
 
 
 module.exports.path = '/:mount/:initiative/window/:window/'
@@ -47,6 +48,7 @@ module.exports.run = function(params) {
               for(var k in response.body.data){
                 label_insights.push({
                   text: k,
+                  conversion_name: _window.conversion_name,
                   insights: response.body.data[k]
                 })
               }
@@ -55,10 +57,8 @@ module.exports.run = function(params) {
               })
           })
           .then(function(label_insights){
-              var i = 0
-              for(i; i < categories.length; i++){
-                //contentEl.innerHTML += labelList({category: categories[i], labels: label_insights[i], funnel: funnel})
-              }
+            _window.labels = label_insights[0]
+            contentEl.innerHTML = layout(_window)
           })
           .catch(function(err){
             console.log(err)

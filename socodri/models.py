@@ -60,6 +60,7 @@ class Initiative(models.Model):
 class Window(models.Model):
     name = models.CharField(max_length=255, unique=True)
     slug = AutoSlugField(populate_from='name')
+    notes = models.TextField(null=True)
     adaccount = models.ForeignKey(AdsObject, related_name='window')
     campaigns = models.ManyToManyField(AdsObject, related_name='windows')
     initiative = models.ForeignKey(Initiative, null=True, related_name='windows')
@@ -73,10 +74,6 @@ class Window(models.Model):
 
     def __unicode__(self):
         return self.name
-
-    @property
-    def conversion_name(self):
-        return 'Lead'
 
 
 class Stage(models.Model):

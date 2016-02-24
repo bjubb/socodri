@@ -1,0 +1,42 @@
+<div class="panel sc-panel">
+    <div class="sc-card-header">
+        <div class="sc-card-details">
+            <div class="col-md-12">
+                <h2 class="card-heading">{{text}}</h2>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                    {{ conversion_name }}s
+                </div>
+                <div class="sc-card-value-large">
+                    {{formatNumber  insights.conversions }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                    Cost
+                </div>
+                <div class="sc-card-value-large">
+                    {{ costPer insights.conversions insights.spend }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                    Reach
+                </div>
+                <div class="sc-card-value-large">
+                    {{ formatNumber insights.reach }}
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="sc-card-label-large">
+                    Rate
+                </div>
+                <div class="sc-card-value-large">
+                    {{ percentOf insights.conversions insights.impressions 3 }}%
+                </div>
+            </div>
+            <div class="clearfix"></div>
+        </div>
+    </div>
+</div>
