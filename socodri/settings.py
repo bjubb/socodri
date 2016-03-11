@@ -101,6 +101,7 @@ WHITELISTED_INITIATIVES = {}
 SOCIALCODE_LOGIN_PATH = "/"
 SOCIALCODE_LOGOUT_PATH = "/logout"
 SOCIALCODE_BASE_URL = 'https://app.socialcode.com'
+SOCIALCODE_DATA_PLATFORM = {}
 CURRENT_USER_API = '/api/bouncer/v2/user/current/'
 FB_APP_ID = 'none'
 FB_APP_SECRET = 'of your'
